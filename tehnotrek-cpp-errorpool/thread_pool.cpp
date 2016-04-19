@@ -10,7 +10,11 @@ thread_pool::thread_pool(int size)
 
 thread_pool::~thread_pool()
 {
-	terminate_flag = true;
+	{
+		std::lock_guard<std::mutex> lock(mutex);
+		terminate_flag = true;
+	}
+
 	cv.notify_all();
 
 	for (int i = 0; i < threads.size(); i++)
