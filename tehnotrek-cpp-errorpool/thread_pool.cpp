@@ -8,6 +8,17 @@ thread_pool::thread_pool(int size)
 	}
 }
 
+thread_pool::~thread_pool()
+{
+	terminate_flag = true;
+	cv.notify_all();
+
+	for (int i = 0; i < threads.size(); i++)
+	{
+		threads[i].join();
+	}
+}
+
 void thread_pool::push(std::function<void()> handler)
 {
 	std::unique_lock<std::mutex> lock(mutex);
@@ -19,9 +30,9 @@ void thread_pool::push(std::function<void()> handler)
 void thread_pool::thread_main()
 {
 	std::unique_lock<std::mutex> lock(mutex);
-	while (true)
+	while (!terminate_flag)
 	{
-		cv.wait(lock, [this]() {return !queue.empty();});
+		cv.wait(lock, [this]() {return (!queue.empty() || terminate_flag);});
 		while (!queue.empty())
 		{
 			std::function<void()> task = queue.front();
